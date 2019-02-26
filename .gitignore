@@ -24,7 +24,6 @@ dist/
 nbdist/
 classes/
 .nb-gradle/
-/lib/
 /out/
 
 
