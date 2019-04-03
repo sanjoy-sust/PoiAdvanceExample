@@ -1,81 +1,71 @@
-// Java Program to demonstrate adjacency list 
-// representation of graphs 
+import java.io.FileOutputStream;
 
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.util.CellReference;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFFormulaEvaluator;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import org.apache.poi.ss.util.*;
 
-public class TestProblem
+class TestProblem {
 
-{
-    public static void main(String[] args) throws IOException {
-
-/*
-        InputStream inp = null;
-        inp = new FileInputStream("E:\\Projects\\PoiAdvanceExample\\stackProblem.xlsx");
-
-        Workbook wb = WorkbookFactory.create(inp);
-        Sheet sheet = wb.getSheetAt(0);
-
-        int rowsCount = sheet.getLastRowNum();
-        int columnCount = sheet.getRow(0).getLastCellNum();
-        String[][] inputData = new String[rowsCount+1][columnCount];
-
-        for (int i = 0; i <= rowsCount; i++) {
-            Row row = sheet.getRow(i);
-            int colCounts = row.getLastCellNum();
-            for (int j = 0; j < colCounts; j++) {
-                Cell cell = row.getCell(j);
-                if(cell.getCellType() == CellType.NUMERIC) {
-                    inputData[i][j] = Double.toString(cell.getNumericCellValue());
-                }
-                if(cell.getCellType() == CellType.FORMULA) {
-                    inputData[i][j] = cell.getCellFormula();
-                }
-                if(cell.getCellType() == CellType.STRING) {
-                    inputData[i][j] = cell.getStringCellValue();
-                }
-            }
-        }*/
-
-       writeData();
-
-    }
-
-    private static void writeData() throws IOException {
+    public static void main(String[] args) throws Exception{
 
         Workbook workbook = new XSSFWorkbook();
-        XSSFSheet sheet = (XSSFSheet) workbook.createSheet();
 
-        int r = 0;
-        for (int i=0;i<2;i++) {
-            Row row = sheet.createRow(r++);
-            int column = 0;
-            for (int j =0;j<2;j++) {
-                XSSFCell cell = (XSSFCell) row.createCell(column++);
-                if (r == 1 || column == 1) cell.setCellValue(i);
-
-                else if (column == 2) {
-                    cell.setCellFormula("OFFSET(IU220,0,1)");
-                    XSSFFormulaEvaluator evaluator =
-                            (XSSFFormulaEvaluator) workbook.getCreationHelper().createFormulaEvaluator();
-                    System.out.println(evaluator.evaluateInCell(cell).getCellType());
-                }
-            }
+        //hidden sheet for list values
+        Sheet sheet = workbook.createSheet("ListSheet");
+        sheet.createRow(0).createCell(0).setCellValue("SourceList");
+        int r = 1;
+        for (int i = 1; i < 5; i++) {
+            sheet.createRow(r++).createCell(0).setCellValue(i);
         }
+        //unselect that sheet because we will hide it later
+        sheet.setSelected(false);
 
+        //visible data sheet
+        sheet = workbook.createSheet("Sheet1");
 
-        FileOutputStream fileOut = new FileOutputStream("stackProblem.xlsx");
-        workbook.write(fileOut);
+        //names for the list constraints
+        Name namedCell = workbook.createName();
+        namedCell.setNameName("List1To4");
+        String reference = "ListSheet!$A$2:$A$5"; //List 1 to 4
+        namedCell.setRefersToFormula(reference);
+
+   /*     namedCell = workbook.createName();
+        namedCell.setNameName("ListLeftCellTo4");
+        reference = "INDEX(List1To4,INDEX(Sheet1!$1:$1000,ROW(),COLUMN()-1)):INDEX(List1To4,4)"; //List n to 4
+        //List1To4Position=ThisRow.ThisColumn-1 : List1To4LastPosition
+        namedCell.setRefersToFormula(reference);*/
+
+        sheet.createRow(0).createCell(0).setCellValue("1 to 4");
+
+        sheet.setActiveCell(new CellAddress("A2"));
+
+        sheet.autoSizeColumn(0);
+        sheet.autoSizeColumn(1);
+
+        //data validations
+
+        DataValidationHelper dvHelper = sheet.getDataValidationHelper();
+        DataValidationConstraint dvConstraint = dvHelper.createFormulaListConstraint("List1To4");
+        CellRangeAddressList addressList = new CellRangeAddressList(1, 4, 0, 0);
+        DataValidation validation = dvHelper.createValidation(dvConstraint, addressList);
+        sheet.addValidationData(validation);
+
+/*        dvConstraint = dvHelper.createFormulaListConstraint("ListLeftCellTo4");
+        addressList = new CellRangeAddressList(1, 1, 1, 1);
+        validation = dvHelper.createValidation(dvConstraint, addressList);*/
+
+        sheet.addValidationData(validation);
+
+        //hide the ListSheet
+        workbook.setSheetHidden(0, true);
+        //set Sheet1 active
+        workbook.setActiveSheet(1);
+
+        FileOutputStream out = new FileOutputStream("CreateExcelDependentDataValidationLists.xlsx");
+        workbook.write(out);
         workbook.close();
+        out.close();
+
     }
 }
-//XSSFCell cell = sheet.getRow(1).createCell(1); cell.setCellFormula("OFFSET(IV220,0,1)");

@@ -25,6 +25,7 @@ nbdist/
 classes/
 .nb-gradle/
 /out/
+output/
 
 
 
