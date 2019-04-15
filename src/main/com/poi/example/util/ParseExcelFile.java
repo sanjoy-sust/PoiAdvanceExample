@@ -6,6 +6,8 @@ import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xssf.eventusermodel.ReadOnlySharedStringsTable;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.StylesTable;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -27,6 +29,7 @@ public class ParseExcelFile {
     private int minColumns;
     private PrintStream output;
     private Class clazz;
+    private SXSSFWorkbook outWorkbook;
 
     /**
      *
@@ -39,7 +42,7 @@ public class ParseExcelFile {
         this.xlsxPackage = pkg;
         this.minColumns = minColumns;
         this.clazz = clazz;
-
+        this.outWorkbook = new SXSSFWorkbook();
     }
     /**
      * Parses and shows the content of one sheet using the specified styles and
@@ -50,11 +53,14 @@ public class ParseExcelFile {
      * @param sheetInputStream
      */
     public void processSheet(StylesTable styles,
-                             ReadOnlySharedStringsTable strings, InputStream sheetInputStream)
+                             ReadOnlySharedStringsTable strings,String sheetName, InputStream sheetInputStream)
             throws IOException, ParserConfigurationException, SAXException {
         SheetModel sheetModel = new SheetModel();
         sheetModel.setNumberOfColumns(0);
         sheetModel.setNumberOfRows(0);
+        sheetModel.setWorkbook(outWorkbook);
+        sheetModel.setCurSheetName(sheetName);
+        sheetModel.setCurOutSheet(outWorkbook.createSheet(sheetName));
         long startTime = System.currentTimeMillis();
         InputSource sheetSource = new InputSource(sheetInputStream);
         SAXParserFactory saxFactory = SAXParserFactory.newInstance();
@@ -91,7 +97,7 @@ public class ParseExcelFile {
             InputStream stream = iter.next();
             String sheetName = iter.getSheetName();
             System.out.println("Processing Sheet : "+sheetName);
-            processSheet(styles, strings, stream);
+            processSheet(styles, strings,sheetName, stream);
             stream.close();
         }
         return true;

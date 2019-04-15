@@ -4,6 +4,7 @@ import main.com.poi.example.model.SheetModel;
 import main.com.poi.example.model.XSSFDataTypes;
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DataValidationConstraint;
 import org.apache.poi.xssf.eventusermodel.ReadOnlySharedStringsTable;
 import org.apache.poi.xssf.model.StylesTable;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -12,7 +13,6 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +30,7 @@ class XSSFSheetEventHandler extends DefaultHandler {
 
     private List<?> list = new ArrayList();
 
-    private SheetModel clazz;
+    private SheetModel sheetModel;
 
     /**
      * Number of columns to read starting with leftmost
@@ -39,6 +39,7 @@ class XSSFSheetEventHandler extends DefaultHandler {
 
     // Set when V start element is seen
     private boolean vIsOpen;
+    private String sqref;
 
     // Set when cell start element is seen;
     // used when cell close element is seen.
@@ -53,6 +54,7 @@ class XSSFSheetEventHandler extends DefaultHandler {
 
     // Gathers characters as they are seen.
     private StringBuffer value;
+    private int dataType;
 
     /**
      * Accepts objects needed while parsing.
@@ -65,14 +67,14 @@ class XSSFSheetEventHandler extends DefaultHandler {
      *            Minimum number of columns to show
      */
     public XSSFSheetEventHandler(StylesTable styles,
-                            ReadOnlySharedStringsTable strings, int cols, SheetModel clazz) {
+                            ReadOnlySharedStringsTable strings, int cols, SheetModel sheetModel) {
         this.stylesTable = styles;
         this.sharedStringsTable = strings;
         this.minColumnCount = cols;
         this.value = new StringBuffer();
         this.nextDataType = XSSFDataTypes.NUMBER;
         this.formatter = new DataFormatter();
-        this.clazz = clazz;
+        this.sheetModel = sheetModel;
     }
 
     public void startElement(String uri, String localName, String name,
@@ -115,6 +117,20 @@ class XSSFSheetEventHandler extends DefaultHandler {
                     this.formatString = BuiltinFormats
                             .getBuiltinFormat(this.formatIndex);
             }
+        }else if ("dataValidation".equals(name)){
+
+            String dvXmlType = attributes.getValue("type");
+            sqref = attributes.getValue("sqref");
+            if(dvXmlType.equals("list")){
+                dataType = DataValidationConstraint.ValidationType.LIST;
+                System.out.println("List Type data ");
+            }
+            System.out.println("At data validation start");
+
+        }else if(name.startsWith("formula")){
+            vIsOpen = true;
+            value = new StringBuffer();
+            System.out.println("At Formula start");
         }
 
     }
@@ -122,7 +138,29 @@ class XSSFSheetEventHandler extends DefaultHandler {
     public void endElement(String uri, String localName, String name)
             throws SAXException {
 
+
+
         String thisStr = null;
+
+        if (vIsOpen) {
+            if ("v".equals(name) || "is".equals(name)) {
+                vIsOpen = false;
+            } else if (name.startsWith("formula")) {
+                char last = name.charAt(name.length() - 1);
+                switch (last) {
+                    case '1':
+                        System.out.println(""+value.toString());
+                        break;
+                    case '2':
+                        System.out.println(value.toString());
+                        break;
+                }
+
+                vIsOpen = false;
+                value = null;
+            }
+        }
+
 
         // v => contents of a cell
         if ("v".equals(name)) {
@@ -186,8 +224,18 @@ class XSSFSheetEventHandler extends DefaultHandler {
             }
 
         } else if ("row".equals(name)) {
-            clazz.setNumberOfRows(clazz.getNumberOfRows()+1);
+            sheetModel.setNumberOfRows(sheetModel.getNumberOfRows()+1);
         }
+
+        else if ("dataValidation".equals(name)) {
+
+            if (dataType == DataValidationConstraint.ValidationType.LIST)
+            {
+
+            }
+            System.out.println("At datavalidation end");
+        }
+
 
     }
 
